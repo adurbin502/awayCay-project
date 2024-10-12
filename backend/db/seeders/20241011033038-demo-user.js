@@ -29,7 +29,11 @@ module.exports = {
           hashedPassword: bcrypt.hashSync("password3"),
         },
       ],
-      { validate: true, ...options }
+      {
+        validate: true, // your existing options
+        schema: options.schema, // schema option, if defined
+        tableName: options.tableName, // table name option
+      }
     );
   },
 

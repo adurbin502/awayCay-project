@@ -31,8 +31,7 @@ module.exports = {
       ],
       {
         validate: true, // your existing options
-        schema: options.schema, // schema option, if defined
-        tableName: options.tableName, // table name option
+        ...options
       }
     );
   },

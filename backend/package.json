@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "sequelize": "sequelize",
-    "sequelize-cli": "sequelize-cli",
+    "sequelize": "npx sequelize-cli",
+    "sequelize-cli": "npx sequelize-cli",
     "start": "per-env",
     "start:development": "nodemon ./bin/www",
     "start:production": "node ./bin/www",

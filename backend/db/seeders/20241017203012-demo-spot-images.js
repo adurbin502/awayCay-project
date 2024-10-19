@@ -1,8 +1,8 @@
 "use strict";
 
-let options = { tableName: "Images" };
+let options = { tableName: "SpotImages" };
 if (process.env.NODE_ENV === "production") {
-  options.schema = process.env.SCHEMA; // Use schema in production
+  options.schema = process.env.SCHEMA;
 }
 
 module.exports = {

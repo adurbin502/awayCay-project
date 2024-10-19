@@ -68,4 +68,22 @@ router.post("/", validateSignup, async (req, res) => {
   });
 });
 
+router.get("/current", requireAuth, async (req, res) => {
+  const { user } = req;
+
+  if (!user) {
+    return res.status(404).json({ message: 'No user logged in' });
+  }
+
+  const safeUser = {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    username: user.username,
+  };
+
+  return res.json({ user: safeUser });
+});
+
 module.exports = router;

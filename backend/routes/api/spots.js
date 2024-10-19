@@ -32,4 +32,20 @@ router.get('/current', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/:spotId', async (req, res) => {
+    try {
+      const spotId = req.params.spotId;
+
+      const spot = await Spot.findByPk(spotId);
+
+      if (!spot) {
+        return res.status(404).json({ message: 'Spot not found' });
+      }
+
+      res.json(spot);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to retrieve spot details', error: err.message });
+    }
+  });
+
 module.exports = router;

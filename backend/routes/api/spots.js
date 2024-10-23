@@ -116,7 +116,6 @@ router.post('/:spotId/images', requireAuth, validateImage, async (req, res) => {
   const { user } = req;
 
   try {
-    // Find the spot by ID and check if the current user is the owner
     const spot = await Spot.findByPk(spotId);
 
     if (!spot) {
@@ -127,7 +126,6 @@ router.post('/:spotId/images', requireAuth, validateImage, async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
     }
 
-    // Create the new image for the spot
     const newImage = await SpotImage.create({
       spotId: spot.id,
       url,
@@ -147,19 +145,16 @@ router.put('/:spotId', requireAuth, validateSpotUpdate, async (req, res) => {
   const { user } = req;
 
   try {
-    // Find the spot by ID
     const spot = await Spot.findByPk(spotId);
 
     if (!spot) {
       return res.status(404).json({ message: "Spot couldn't be found" });
     }
 
-    // Ensure the current user is the owner of the spot
     if (spot.ownerId !== user.id) {
       return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
     }
 
-    // Update the spot with new values
     spot.address = address;
     spot.city = city;
     spot.state = state;
@@ -184,24 +179,51 @@ router.delete('/:spotId', requireAuth, async (req, res) => {
   const { user } = req;
 
   try {
-    // Find the spot by ID
     const spot = await Spot.findByPk(spotId);
 
     if (!spot) {
       return res.status(404).json({ message: "Spot couldn't be found" });
     }
 
-    // Ensure the current user is the owner of the spot
     if (spot.ownerId !== user.id) {
       return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
     }
 
-    // Delete the spot
     await spot.destroy();
 
     return res.status(200).json({ message: 'Successfully deleted' });
   } catch (err) {
     return res.status(500).json({ message: 'Failed to delete spot', error: err.message });
+  }
+});
+
+// DELETE - Delete a spot image
+router.delete('/images/:imageId', requireAuth, async (req, res) => {
+  const { imageId } = req.params;
+  const { user } = req;
+
+  try {
+    const image = await SpotImage.findByPk(imageId);
+
+    if (!image) {
+      return res.status(404).json({ message: "Spot Image couldn't be found" });
+    }
+
+    const spot = await Spot.findByPk(image.spotId);
+
+    if (!spot) {
+      return res.status(404).json({ message: "Spot couldn't be found" });
+    }
+
+    if (spot.ownerId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
+    }
+
+    await image.destroy();
+
+    return res.status(200).json({ message: 'Successfully deleted' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to delete spot image', error: err.message });
   }
 });
 

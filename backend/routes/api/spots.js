@@ -1,6 +1,7 @@
 const express = require('express');
 const { Spot, SpotImage } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
+const { Op } = require('sequelize');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
@@ -82,6 +83,43 @@ const validateSpotUpdate = [
     .isFloat({ min: 0 })
     .withMessage('Price per day must be a positive number'),
   handleValidationErrors,
+];
+
+// Validation middleware for query parameters
+const validateQueryParams = [
+  check('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Page must be greater than or equal to 1'),
+  check('size')
+    .optional()
+    .isInt({ min: 1, max: 20 })
+    .withMessage('Size must be between 1 and 20'),
+  check('minLat')
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Minimum latitude is invalid'),
+  check('maxLat')
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Maximum latitude is invalid'),
+  check('minLng')
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Minimum longitude is invalid'),
+  check('maxLng')
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Maximum longitude is invalid'),
+  check('minPrice')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Minimum price must be greater than or equal to 0'),
+  check('maxPrice')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Maximum price must be greater than or equal to 0'),
+  handleValidationErrors
 ];
 
 // POST - Create a new spot
@@ -227,11 +265,50 @@ router.delete('/images/:imageId', requireAuth, async (req, res) => {
   }
 });
 
-// GET all spots
-router.get('/', async (req, res) => {
+// GET all spots with query filters
+router.get('/', validateQueryParams, async (req, res) => {
+  const { page = 1, size = 20, minLat, maxLat, minLng, maxLng, minPrice, maxPrice } = req.query;
+
+  const query = {
+    where: {},
+    limit: parseInt(size),
+    offset: (parseInt(page) - 1) * parseInt(size),
+  };
+
+  if (minLat) query.where.lat = { [Op.gte]: parseFloat(minLat) };
+  if (maxLat) query.where.lat = { ...query.where.lat, [Op.lte]: parseFloat(maxLat) };
+
+  if (minLng) query.where.lng = { [Op.gte]: parseFloat(minLng) };
+  if (maxLng) query.where.lng = { ...query.where.lng, [Op.lte]: parseFloat(maxLng) };
+
+  if (minPrice) query.where.price = { [Op.gte]: parseFloat(minPrice) };
+  if (maxPrice) query.where.price = { ...query.where.price, [Op.lte]: parseFloat(maxPrice) };
+
   try {
-    const spots = await Spot.findAll();
-    res.json({ Spots: spots });
+    const spots = await Spot.findAll(query);
+
+    const spotsWithExtras = await Promise.all(spots.map(async spot => {
+      const spotData = spot.toJSON();
+
+      const previewImage = await SpotImage.findOne({
+        where: {
+          spotId: spot.id,
+          preview: true,
+        },
+        attributes: ['url'],
+      });
+      spotData.previewImage = previewImage ? previewImage.url : null;
+
+      spotData.avgRating = 4.5;
+
+      return spotData;
+    }));
+
+    return res.json({
+      Spots: spotsWithExtras,
+      page: parseInt(page),
+      size: parseInt(size),
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to retrieve spots', error: err.message });
   }
@@ -276,4 +353,3 @@ router.get('/:spotId', async (req, res) => {
 });
 
 module.exports = router;
-

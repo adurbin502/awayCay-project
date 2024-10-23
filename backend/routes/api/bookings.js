@@ -1,7 +1,22 @@
 const express = require('express');
-const { Booking, Spot, SpotImage } = require('../../db/models');
+const { Booking, Spot } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
+const { check } = require('express-validator');
+const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
+
+// Validation middleware for booking creation
+const validateBooking = [
+  check('startDate')
+    .exists({ checkFalsy: true })
+    .isDate()
+    .withMessage('Please provide a valid start date.'),
+  check('endDate')
+    .exists({ checkFalsy: true })
+    .isDate()
+    .withMessage('Please provide a valid end date.'),
+  handleValidationErrors,
+];
 
 // GET /api/bookings/current - Get all of the current user's bookings
 router.get('/current', requireAuth, async (req, res) => {
@@ -70,5 +85,60 @@ router.get('/spots/:spotId/bookings', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// POST /api/spots/:spotId/bookings - Create a booking for a spot
+router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req, res) => {
+  const { spotId } = req.params;
+  const { startDate, endDate } = req.body;
+  const { user } = req;
 
+  try {
+    // Check if the spot exists
+    const spot = await Spot.findByPk(spotId);
+
+    if (!spot) {
+      return res.status(404).json({ message: "Spot couldn't be found" });
+    }
+
+    // Ensure the user is not booking their own spot
+    if (spot.ownerId === user.id) {
+      return res.status(403).json({ message: 'You cannot book your own spot.' });
+    }
+
+    // Check for conflicting bookings
+    const conflictingBooking = await Booking.findOne({
+      where: {
+        spotId,
+        [Op.or]: [
+          {
+            startDate: { [Op.between]: [startDate, endDate] },
+          },
+          {
+            endDate: { [Op.between]: [startDate, endDate] },
+          },
+          {
+            startDate: { [Op.lte]: startDate },
+            endDate: { [Op.gte]: endDate },
+          },
+        ],
+      },
+    });
+
+    if (conflictingBooking) {
+      return res.status(403).json({ message: 'Spot is already booked for the specified dates.' });
+    }
+
+    // Create the new booking
+    const newBooking = await Booking.create({
+      spotId,
+      userId: user.id,
+      startDate,
+      endDate,
+    });
+
+    return res.status(201).json(newBooking);
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to create booking', error: err.message });
+  }
+});
+
+module.exports = router;

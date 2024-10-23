@@ -25,7 +25,7 @@ const validateImage = [
   handleValidationErrors,
 ];
 
-// GET /api/reviews/current - Get all reviews of the current user
+// GET - Get all reviews of the current user
 router.get('/current', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -50,7 +50,7 @@ router.get('/current', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/spots/:spotId/reviews - Get all reviews for a specific spot
+// GET - Get all reviews for a specific spot
 router.get('/spots/:spotId/reviews', async (req, res) => {
   const { spotId } = req.params;
 
@@ -79,7 +79,7 @@ router.get('/spots/:spotId/reviews', async (req, res) => {
   }
 });
 
-// POST /api/spots/:spotId/reviews - Create a review for a spot
+// POST - Create a review for a spot
 router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, res) => {
   const { spotId } = req.params;
   const { user } = req;
@@ -116,7 +116,7 @@ router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, r
   }
 });
 
-// POST /api/reviews/:reviewId/images - Add an image to a review
+// POST - Add an image to a review
 router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) => {
   const { reviewId } = req.params;
   const { url } = req.body;
@@ -153,7 +153,7 @@ router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) =>
   }
 });
 
-// PUT /api/reviews/:reviewId - Edit a review
+// PUT - Edit a review
 router.put('/:reviewId', requireAuth, validateReview, async (req, res) => {
   const { reviewId } = req.params;
   const { review, stars } = req.body;
@@ -183,7 +183,7 @@ router.put('/:reviewId', requireAuth, validateReview, async (req, res) => {
   }
 });
 
-// DELETE /api/reviews/:reviewId - Delete a review
+// DELETE - Delete a review
 router.delete('/:reviewId', requireAuth, async (req, res) => {
   const { reviewId } = req.params;
 
@@ -209,7 +209,7 @@ router.delete('/:reviewId', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/reviews/images/:imageId - Delete a review image
+// DELETE - Delete a review image
 router.delete('/images/:imageId', requireAuth, async (req, res) => {
   const { imageId } = req.params;
 
@@ -240,4 +240,3 @@ router.delete('/images/:imageId', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

@@ -19,7 +19,7 @@ const validateBooking = [
   handleValidationErrors,
 ];
 
-// GET /api/bookings/current - Get all of the current user's bookings
+// GET - Get all of the current user's bookings
 router.get('/current', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -56,7 +56,7 @@ router.get('/current', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/spots/:spotId/bookings - Get all bookings for a spot by spot's ID
+// GET - Get all bookings for a spot by spot's ID
 router.get('/spots/:spotId/bookings', requireAuth, async (req, res) => {
   const { spotId } = req.params;
   const { user } = req;
@@ -81,7 +81,7 @@ router.get('/spots/:spotId/bookings', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/spots/:spotId/bookings - Create a booking for a spot
+// POST - Create a booking for a spot
 router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req, res) => {
   const { spotId } = req.params;
   const { startDate, endDate } = req.body;
@@ -126,7 +126,7 @@ router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req,
   }
 });
 
-// PUT /api/bookings/:bookingId - Edit a booking
+// PUT - Edit a booking
 router.put('/:bookingId', requireAuth, validateBooking, async (req, res) => {
   const { bookingId } = req.params;
   const { startDate, endDate } = req.body;
@@ -172,7 +172,7 @@ router.put('/:bookingId', requireAuth, validateBooking, async (req, res) => {
   }
 });
 
-// DELETE /api/bookings/:bookingId - Delete a booking
+// DELETE - Delete a booking
 router.delete('/:bookingId', requireAuth, async (req, res) => {
   const { bookingId } = req.params;
   const { user } = req;
@@ -197,4 +197,3 @@ router.delete('/:bookingId', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

@@ -16,6 +16,15 @@ const validateReview = [
   handleValidationErrors,
 ];
 
+// Validation middleware for adding a review image
+const validateImage = [
+  check('url')
+    .exists({ checkFalsy: true })
+    .isURL()
+    .withMessage('Please provide a valid URL for the image.'),
+  handleValidationErrors,
+];
+
 // GET /api/reviews/current - Get all reviews of the current user
 router.get('/current', requireAuth, async (req, res) => {
   try {
@@ -104,6 +113,43 @@ router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, r
     return res.status(201).json(newReview);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to create review', error: err.message });
+  }
+});
+
+// POST /api/reviews/:reviewId/images - Add an image to a review
+router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) => {
+  const { reviewId } = req.params;
+  const { url } = req.body;
+
+  try {
+    // Find the review by ID
+    const review = await Review.findByPk(reviewId);
+
+    if (!review) {
+      return res.status(404).json({ message: "Review couldn't be found" });
+    }
+
+    // Check if the review belongs to the current user
+    if (review.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not the owner of this review.' });
+    }
+
+    // Count the number of existing images for the review
+    const imageCount = await ReviewImage.count({ where: { reviewId } });
+
+    if (imageCount >= 10) {
+      return res.status(403).json({ message: 'Maximum number of images for this review reached' });
+    }
+
+    // Create the new review image
+    const newImage = await ReviewImage.create({
+      reviewId,
+      url
+    });
+
+    return res.status(201).json(newImage);
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to add image', error: err.message });
   }
 });
 

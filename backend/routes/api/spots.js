@@ -178,6 +178,33 @@ router.put('/:spotId', requireAuth, validateSpotUpdate, async (req, res) => {
   }
 });
 
+// DELETE - Delete a spot
+router.delete('/:spotId', requireAuth, async (req, res) => {
+  const { spotId } = req.params;
+  const { user } = req;
+
+  try {
+    // Find the spot by ID
+    const spot = await Spot.findByPk(spotId);
+
+    if (!spot) {
+      return res.status(404).json({ message: "Spot couldn't be found" });
+    }
+
+    // Ensure the current user is the owner of the spot
+    if (spot.ownerId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
+    }
+
+    // Delete the spot
+    await spot.destroy();
+
+    return res.status(200).json({ message: 'Successfully deleted' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to delete spot', error: err.message });
+  }
+});
+
 // GET all spots
 router.get('/', async (req, res) => {
   try {
@@ -227,3 +254,4 @@ router.get('/:spotId', async (req, res) => {
 });
 
 module.exports = router;
+

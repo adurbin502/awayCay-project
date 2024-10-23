@@ -1,28 +1,34 @@
 'use strict';
-module.exports = (sequelize, DataTypes) => {
-  const SpotImage = sequelize.define('SpotImage', {
-    spotId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Spots',
-        key: 'id'
-      }
-    },
-    url: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    preview: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false
-    }
-  }, {});
+const { Model } = require('sequelize');
 
-  SpotImage.associate = function(models) {
+class SpotImage extends Model {
+  static associate(models) {
     SpotImage.belongsTo(models.Spot, { foreignKey: 'spotId' });
-  };
+  }
+}
 
-  return SpotImage;
-};
+SpotImage.init({
+  spotId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Spots',
+      key: 'id'
+    }
+  },
+  url: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  preview: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  }
+}, {
+  sequelize,
+  modelName: 'SpotImage',
+});
+
+module.exports = SpotImage;
+

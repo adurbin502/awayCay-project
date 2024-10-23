@@ -3,9 +3,10 @@ const { Booking, Spot } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
+const { Op } = require('sequelize');
 const router = express.Router();
 
-// Validation middleware for booking creation
+// Validation middleware for booking creation and updates
 const validateBooking = [
   check('startDate')
     .exists({ checkFalsy: true })
@@ -61,22 +62,17 @@ router.get('/spots/:spotId/bookings', requireAuth, async (req, res) => {
   const { user } = req;
 
   try {
-    // Check if the spot exists
     const spot = await Spot.findByPk(spotId);
 
     if (!spot) {
       return res.status(404).json({ message: "Spot couldn't be found" });
     }
 
-    // Check if the current user is the owner of the spot
     const isOwner = spot.ownerId === user.id;
 
-    // Get bookings for the spot
     const bookings = await Booking.findAll({
       where: { spotId },
-      attributes: isOwner
-        ? undefined // Owner sees all booking details
-        : ['spotId', 'startDate', 'endDate'], // Non-owners see limited booking details
+      attributes: isOwner ? undefined : ['spotId', 'startDate', 'endDate'],
     });
 
     return res.json({ Bookings: bookings });
@@ -92,33 +88,23 @@ router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req,
   const { user } = req;
 
   try {
-    // Check if the spot exists
     const spot = await Spot.findByPk(spotId);
 
     if (!spot) {
       return res.status(404).json({ message: "Spot couldn't be found" });
     }
 
-    // Ensure the user is not booking their own spot
     if (spot.ownerId === user.id) {
       return res.status(403).json({ message: 'You cannot book your own spot.' });
     }
 
-    // Check for conflicting bookings
     const conflictingBooking = await Booking.findOne({
       where: {
         spotId,
         [Op.or]: [
-          {
-            startDate: { [Op.between]: [startDate, endDate] },
-          },
-          {
-            endDate: { [Op.between]: [startDate, endDate] },
-          },
-          {
-            startDate: { [Op.lte]: startDate },
-            endDate: { [Op.gte]: endDate },
-          },
+          { startDate: { [Op.between]: [startDate, endDate] } },
+          { endDate: { [Op.between]: [startDate, endDate] } },
+          { startDate: { [Op.lte]: startDate }, endDate: { [Op.gte]: endDate } },
         ],
       },
     });
@@ -127,7 +113,6 @@ router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req,
       return res.status(403).json({ message: 'Spot is already booked for the specified dates.' });
     }
 
-    // Create the new booking
     const newBooking = await Booking.create({
       spotId,
       userId: user.id,
@@ -141,4 +126,75 @@ router.post('/spots/:spotId/bookings', requireAuth, validateBooking, async (req,
   }
 });
 
+// PUT /api/bookings/:bookingId - Edit a booking
+router.put('/:bookingId', requireAuth, validateBooking, async (req, res) => {
+  const { bookingId } = req.params;
+  const { startDate, endDate } = req.body;
+  const { user } = req;
+
+  try {
+    const booking = await Booking.findByPk(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking couldn't be found" });
+    }
+
+    if (booking.userId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this booking.' });
+    }
+
+    // Check if new dates conflict with existing bookings
+    const conflictingBooking = await Booking.findOne({
+      where: {
+        spotId: booking.spotId,
+        id: { [Op.ne]: bookingId }, // Exclude the current booking
+        [Op.or]: [
+          { startDate: { [Op.between]: [startDate, endDate] } },
+          { endDate: { [Op.between]: [startDate, endDate] } },
+          { startDate: { [Op.lte]: startDate }, endDate: { [Op.gte]: endDate } },
+        ],
+      },
+    });
+
+    if (conflictingBooking) {
+      return res.status(403).json({ message: 'Spot is already booked for the specified dates.' });
+    }
+
+    // Update booking with new dates
+    booking.startDate = startDate;
+    booking.endDate = endDate;
+
+    await booking.save();
+
+    return res.status(200).json(booking);
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to edit booking', error: err.message });
+  }
+});
+
+// DELETE /api/bookings/:bookingId - Delete a booking
+router.delete('/:bookingId', requireAuth, async (req, res) => {
+  const { bookingId } = req.params;
+  const { user } = req;
+
+  try {
+    const booking = await Booking.findByPk(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking couldn't be found" });
+    }
+
+    if (booking.userId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this booking.' });
+    }
+
+    await booking.destroy();
+
+    return res.status(200).json({ message: 'Successfully deleted' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to delete booking', error: err.message });
+  }
+});
+
 module.exports = router;
+

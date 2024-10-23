@@ -5,7 +5,7 @@ const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
 
-// Validation middleware for creating a review
+// Validation middleware for creating/editing a review
 const validateReview = [
   check('review')
     .exists({ checkFalsy: true })
@@ -150,6 +150,36 @@ router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) =>
     return res.status(201).json(newImage);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to add image', error: err.message });
+  }
+});
+
+// PUT /api/reviews/:reviewId - Edit a review
+router.put('/:reviewId', requireAuth, validateReview, async (req, res) => {
+  const { reviewId } = req.params;
+  const { review, stars } = req.body;
+
+  try {
+    // Find the review by ID
+    const existingReview = await Review.findByPk(reviewId);
+
+    if (!existingReview) {
+      return res.status(404).json({ message: "Review couldn't be found" });
+    }
+
+    // Ensure the current user is the owner of the review
+    if (existingReview.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not the owner of this review.' });
+    }
+
+    // Update the review with new values
+    existingReview.review = review;
+    existingReview.stars = stars;
+
+    await existingReview.save();
+
+    return res.status(200).json(existingReview);
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to edit review', error: err.message });
   }
 });
 

@@ -40,4 +40,35 @@ router.get('/current', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/spots/:spotId/bookings - Get all bookings for a spot by spot's ID
+router.get('/spots/:spotId/bookings', requireAuth, async (req, res) => {
+  const { spotId } = req.params;
+  const { user } = req;
+
+  try {
+    // Check if the spot exists
+    const spot = await Spot.findByPk(spotId);
+
+    if (!spot) {
+      return res.status(404).json({ message: "Spot couldn't be found" });
+    }
+
+    // Check if the current user is the owner of the spot
+    const isOwner = spot.ownerId === user.id;
+
+    // Get bookings for the spot
+    const bookings = await Booking.findAll({
+      where: { spotId },
+      attributes: isOwner
+        ? undefined // Owner sees all booking details
+        : ['spotId', 'startDate', 'endDate'], // Non-owners see limited booking details
+    });
+
+    return res.json({ Bookings: bookings });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to retrieve bookings', error: err.message });
+  }
+});
+
 module.exports = router;
+

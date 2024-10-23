@@ -1,5 +1,5 @@
 const express = require('express');
-const { Spot } = require('../../db/models');
+const { Spot, SpotImage } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
@@ -38,6 +38,19 @@ const validateSpot = [
   handleValidationErrors,
 ];
 
+// Validation middleware for adding a spot image
+const validateImage = [
+  check('url')
+    .exists({ checkFalsy: true })
+    .isURL()
+    .withMessage('Please provide a valid URL for the image.'),
+  check('preview')
+    .exists({ checkFalsy: true })
+    .isBoolean()
+    .withMessage('Please provide a boolean value for the preview field.'),
+  handleValidationErrors,
+];
+
 // POST /api/spots - Create a new spot
 router.post('/', requireAuth, validateSpot, async (req, res) => {
   const { address, city, state, country, lat, lng, name, description, price } = req.body;
@@ -60,6 +73,37 @@ router.post('/', requireAuth, validateSpot, async (req, res) => {
     return res.status(201).json(spot);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to create spot', error: err.message });
+  }
+});
+
+// POST /api/spots/:spotId/images - Add an image to a spot
+router.post('/:spotId/images', requireAuth, validateImage, async (req, res) => {
+  const { spotId } = req.params;
+  const { url, preview } = req.body;
+  const { user } = req;
+
+  try {
+    // Find the spot by ID and check if the current user is the owner
+    const spot = await Spot.findByPk(spotId);
+
+    if (!spot) {
+      return res.status(404).json({ message: "Spot couldn't be found" });
+    }
+
+    if (spot.ownerId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not the owner of this spot.' });
+    }
+
+    // Create the new image for the spot
+    const newImage = await SpotImage.create({
+      spotId: spot.id,
+      url,
+      preview
+    });
+
+    return res.status(201).json(newImage);
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to add image', error: err.message });
   }
 });
 
@@ -112,4 +156,3 @@ router.get('/:spotId', async (req, res) => {
 });
 
 module.exports = router;
-

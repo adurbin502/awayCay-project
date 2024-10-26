@@ -1,5 +1,5 @@
 const express = require('express');
-const { Review, Spot, User, ReviewImage } = require('../../db/models');
+const { Reviews, Spot, User, ReviewImages } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
@@ -30,7 +30,7 @@ router.get('/current', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const reviews = await Review.findAll({
+    const reviews = await Reviews.findAll({
       where: { userId },
       include: [
         {
@@ -55,7 +55,7 @@ router.get('/spots/:spotId/reviews', async (req, res) => {
   const { spotId } = req.params;
 
   try {
-    const reviews = await Review.findAll({
+    const reviews = await Reviews.findAll({
       where: { spotId },
       include: [
         {
@@ -63,7 +63,7 @@ router.get('/spots/:spotId/reviews', async (req, res) => {
           attributes: ['id', 'firstName', 'lastName'],
         },
         {
-          model: ReviewImage,
+          model: ReviewImages,
           attributes: ['id', 'url']
         }
       ]
@@ -94,7 +94,7 @@ router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, r
     }
 
     // Check if the user has already reviewed this spot
-    const existingReview = await Review.findOne({
+    const existingReview = await Reviews.findOne({
       where: { spotId, userId: user.id }
     });
 
@@ -103,7 +103,7 @@ router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, r
     }
 
     // Create a new review for the spot
-    const newReview = await Review.create({
+    const newReview = await Reviews.create({
       userId: user.id,
       spotId,
       review,
@@ -123,7 +123,7 @@ router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) =>
 
   try {
     // Find the review by ID
-    const review = await Review.findByPk(reviewId);
+    const review = await Reviews.findByPk(reviewId);
 
     if (!review) {
       return res.status(404).json({ message: "Review couldn't be found" });
@@ -135,14 +135,14 @@ router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) =>
     }
 
     // Count the number of existing images for the review
-    const imageCount = await ReviewImage.count({ where: { reviewId } });
+    const imageCount = await ReviewImages.count({ where: { reviewId } });
 
     if (imageCount >= 10) {
       return res.status(403).json({ message: 'Maximum number of images for this review reached' });
     }
 
     // Create the new review image
-    const newImage = await ReviewImage.create({
+    const newImage = await ReviewImages.create({
       reviewId,
       url
     });
@@ -160,7 +160,7 @@ router.put('/:reviewId', requireAuth, validateReview, async (req, res) => {
 
   try {
     // Find the review by ID
-    const existingReview = await Review.findByPk(reviewId);
+    const existingReview = await Reviews.findByPk(reviewId);
 
     if (!existingReview) {
       return res.status(404).json({ message: "Review couldn't be found" });
@@ -189,7 +189,7 @@ router.delete('/:reviewId', requireAuth, async (req, res) => {
 
   try {
     // Find the review by ID
-    const review = await Review.findByPk(reviewId);
+    const review = await Reviews.findByPk(reviewId);
 
     if (!review) {
       return res.status(404).json({ message: "Review couldn't be found" });
@@ -214,13 +214,13 @@ router.delete('/images/:imageId', requireAuth, async (req, res) => {
   const { imageId } = req.params;
 
   try {
-    const image = await ReviewImage.findByPk(imageId);
+    const image = await ReviewImages.findByPk(imageId);
 
     if (!image) {
       return res.status(404).json({ message: "Review Image couldn't be found" });
     }
 
-    const review = await Review.findByPk(image.reviewId);
+    const review = await Reviews.findByPk(image.reviewId);
 
     if (!review) {
       return res.status(404).json({ message: "Review couldn't be found" });

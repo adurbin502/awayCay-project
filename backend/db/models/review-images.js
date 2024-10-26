@@ -2,14 +2,14 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class ReviewImage extends Model {
+  class ReviewImages extends Model {
     static associate(models) {
       // Define association here
-      ReviewImage.belongsTo(models.Review, { foreignKey: 'reviewId' });
+      ReviewImages.belongsTo(models.Reviews, { foreignKey: 'reviewId' });
     }
   }
 
-  ReviewImage.init({
+  ReviewImages.init({
     reviewId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -27,5 +27,5 @@ module.exports = (sequelize, DataTypes) => {
     modelName: 'ReviewImages',
   });
 
-  return ReviewImage;
+  return ReviewImages;
 };

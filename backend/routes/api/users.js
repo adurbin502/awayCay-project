@@ -1,3 +1,5 @@
+routes/api/users.js:
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 
@@ -41,28 +43,9 @@ const validateSignup = [
   handleValidationErrors,
 ];
 
-router.post("/", validateSignup, async (req, res, next) => {
-  const { email, password, username, firstName, lastName } = req.body;
-
-  // Check if email or username already exists
-  const existingUser = await User.findOne({
-    where: {
-      [Op.or]: [{ email }, { username }]
-    }
-  });
-
-  if (existingUser) {
-    const errors = {};
-    if (existingUser.email === email) errors.email = "User with that email already exists";
-    if (existingUser.username === username) errors.username = "User with that username already exists";
-
-    const err = new Error("User already exists");
-    err.status = 500;
-    err.errors = errors;
-    return next(err);
-  }
-
-  // Create new user if email and username are unique
+router.post("/", validateSignup, async (req, res) => {
+  const { email, password, username, firstName, lastName } =
+    req.body;
   const hashedPassword = bcrypt.hashSync(password);
   const user = await User.create({
     email,
@@ -82,11 +65,10 @@ router.post("/", validateSignup, async (req, res, next) => {
 
   await setTokenCookie(res, safeUser);
 
-  return res.status(201).json({
+  return res.json({
     user: safeUser,
   });
 });
-
 
 router.get("/current", requireAuth, async (req, res) => {
   const { user } = req;

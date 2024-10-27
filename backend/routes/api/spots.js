@@ -37,20 +37,21 @@ const validateQueryParams = [
   check('maxLng').optional().isFloat({ min: -180, max: 180 }).withMessage('Maximum longitude is invalid'),
   check('minPrice').optional().isFloat({ min: 0 }).withMessage('Minimum price must be greater than or equal to 0'),
   check('maxPrice').optional().isFloat({ min: 0 }).withMessage('Maximum price must be greater than or equal to 0'),
-  handleValidationErrors
+  handleValidationErrors,
 ];
 
-// GET /api/spots - Get all spots with query filters
+// GET /api/spots - Get all spots with optional query filters
 router.get('/', validateQueryParams, async (req, res) => {
   const { page = 1, size = 20, minLat, maxLat, minLng, maxLng, minPrice, maxPrice } = req.query;
 
+  // Construct query with pagination and filtering
   const query = {
     where: {},
     limit: parseInt(size),
     offset: (parseInt(page) - 1) * parseInt(size),
   };
 
-  // Apply filters
+  // Apply location and price filters if specified
   if (minLat) query.where.lat = { [Op.gte]: parseFloat(minLat) };
   if (maxLat) query.where.lat = { ...query.where.lat, [Op.lte]: parseFloat(maxLat) };
   if (minLng) query.where.lng = { [Op.gte]: parseFloat(minLng) };
@@ -59,9 +60,11 @@ router.get('/', validateQueryParams, async (req, res) => {
   if (maxPrice) query.where.price = { ...query.where.price, [Op.lte]: parseFloat(maxPrice) };
 
   try {
+    // Retrieve filtered spots
     const spots = await Spot.findAll(query);
 
-    const spotsWithExtras = await Promise.all(spots.map(async spot => {
+    // Add avgRating and previewImage for each spot
+    const spotsWithExtras = await Promise.all(spots.map(async (spot) => {
       const spotData = spot.toJSON();
 
       // Get preview image
@@ -81,8 +84,14 @@ router.get('/', validateQueryParams, async (req, res) => {
       return spotData;
     }));
 
-    return res.status(200).json({ Spots: spotsWithExtras, page: parseInt(page), size: parseInt(size) });
-  } catch {
+    // Respond with spots array and pagination data as per docs
+    return res.status(200).json({
+      Spots: spotsWithExtras,
+      page: parseInt(page),
+      size: parseInt(size),
+    });
+  } catch (error) {
+    console.error("Error retrieving spots:", error);
     return res.status(500).json({ message: 'Failed to retrieve spots' });
   }
 });
@@ -155,7 +164,7 @@ router.get('/:spotId', async (req, res) => {
 
     return res.status(200).json(spotData);
   } catch {
-    res.status(500).json({ message: 'Failed to retrieve spot details' });
+    res.status(404).json({ message: "Spot couldn't be found" });
   }
 });
 

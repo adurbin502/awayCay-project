@@ -1,7 +1,7 @@
 const express = require('express');
 const { Spot, SpotImage, User, Review } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
-const { Op } = require('sequelize');
+const { Op, sequelize } = require('sequelize');
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
@@ -17,13 +17,6 @@ const validateSpot = [
   check('name').exists({ checkFalsy: true }).isLength({ max: 50 }).withMessage('Name must be less than 50 characters'),
   check('description').exists({ checkFalsy: true }).withMessage('Description is required'),
   check('price').isFloat({ min: 0 }).withMessage('Price per day must be a positive number'),
-  handleValidationErrors,
-];
-
-// Validation middleware for adding an image to a spot
-const validateImage = [
-  check('url').exists({ checkFalsy: true }).isURL().withMessage('Please provide a valid URL for the image.'),
-  check('preview').exists({ checkFalsy: true }).isBoolean().withMessage('Please provide a boolean value for the preview field.'),
   handleValidationErrors,
 ];
 
@@ -178,7 +171,7 @@ router.post('/', requireAuth, validateSpot, async (req, res) => {
 });
 
 // POST /api/spots/:spotId/images - Add an image to a spot
-router.post('/:spotId/images', requireAuth, validateImage, async (req, res) => {
+router.post('/:spotId/images', requireAuth, validateSpot, async (req, res) => {
   const { spotId } = req.params;
   const { url, preview } = req.body;
   const { user } = req;

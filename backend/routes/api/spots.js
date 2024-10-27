@@ -78,7 +78,7 @@ router.get('/', validateQueryParams, async (req, res) => {
       return spotData;
     }));
 
-    return res.json({ Spots: spotsWithExtras, page: parseInt(page), size: parseInt(size) });
+    return res.status(200).json({ Spots: spotsWithExtras, page: parseInt(page), size: parseInt(size) });
   } catch (err) {
     res.status(500).json({ message: 'Failed to retrieve spots', error: err.message });
   }
@@ -108,7 +108,7 @@ router.get('/current', requireAuth, async (req, res) => {
       return spotData;
     }));
 
-    res.json({ Spots: spotsWithExtras });
+    res.status(200).json({ Spots: spotsWithExtras });
   } catch (err) {
     res.status(500).json({ message: 'Failed to retrieve user-owned spots', error: err.message });
   }
@@ -146,7 +146,7 @@ router.get('/:spotId', async (req, res) => {
     spotData.numReviews = numReviews;
     spotData.avgStarRating = avgStarRating;
 
-    return res.json(spotData);
+    return res.status(200).json(spotData);
   } catch (err) {
     res.status(500).json({ message: 'Failed to retrieve spot details', error: err.message });
   }

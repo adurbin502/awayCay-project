@@ -50,6 +50,7 @@ router.get('/', validateQueryParams, async (req, res) => {
     offset: (parseInt(page) - 1) * parseInt(size),
   };
 
+  // Apply filters
   if (minLat) query.where.lat = { [Op.gte]: parseFloat(minLat) };
   if (maxLat) query.where.lat = { ...query.where.lat, [Op.lte]: parseFloat(maxLat) };
   if (minLng) query.where.lng = { [Op.gte]: parseFloat(minLng) };
@@ -63,24 +64,26 @@ router.get('/', validateQueryParams, async (req, res) => {
     const spotsWithExtras = await Promise.all(spots.map(async spot => {
       const spotData = spot.toJSON();
 
+      // Get preview image
       const previewImage = await SpotImage.findOne({
         where: { spotId: spot.id, preview: true },
         attributes: ['url'],
       });
       spotData.previewImage = previewImage ? previewImage.url : null;
 
-      const avgRating = await Review.findOne({
+      // Calculate avgRating
+      const avgRatingData = await Review.findOne({
         where: { spotId: spot.id },
-        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avgRating']]
+        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avgRating']],
       });
-      spotData.avgRating = avgRating ? parseFloat(avgRating.dataValues.avgRating).toFixed(1) : null;
+      spotData.avgRating = avgRatingData ? parseFloat(avgRatingData.dataValues.avgRating).toFixed(1) : null;
 
       return spotData;
     }));
 
     return res.status(200).json({ Spots: spotsWithExtras, page: parseInt(page), size: parseInt(size) });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to retrieve spots', error: err.message });
+  } catch {
+    return res.status(500).json({ message: 'Failed to retrieve spots' });
   }
 });
 
@@ -93,24 +96,26 @@ router.get('/current', requireAuth, async (req, res) => {
     const spotsWithExtras = await Promise.all(spots.map(async spot => {
       const spotData = spot.toJSON();
 
+      // Get preview image
       const previewImage = await SpotImage.findOne({
         where: { spotId: spot.id, preview: true },
         attributes: ['url'],
       });
       spotData.previewImage = previewImage ? previewImage.url : null;
 
-      const avgRating = await Review.findOne({
+      // Calculate avgRating
+      const avgRatingData = await Review.findOne({
         where: { spotId: spot.id },
-        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avgRating']]
+        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avgRating']],
       });
-      spotData.avgRating = avgRating ? parseFloat(avgRating.dataValues.avgRating).toFixed(1) : null;
+      spotData.avgRating = avgRatingData ? parseFloat(avgRatingData.dataValues.avgRating).toFixed(1) : null;
 
       return spotData;
     }));
 
     res.status(200).json({ Spots: spotsWithExtras });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to retrieve user-owned spots', error: err.message });
+  } catch {
+    res.status(500).json({ message: 'Failed to retrieve user-owned spots' });
   }
 });
 
@@ -138,17 +143,19 @@ router.get('/:spotId', async (req, res) => {
     }
 
     const numReviews = await Review.count({ where: { spotId } });
-    const avgStarRating = numReviews
-      ? (await Review.sum('stars', { where: { spotId } })) / numReviews
-      : null;
+    const avgStarRatingData = await Review.findOne({
+      where: { spotId },
+      attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avgStarRating']],
+    });
+    const avgStarRating = avgStarRatingData ? parseFloat(avgStarRatingData.dataValues.avgStarRating).toFixed(1) : null;
 
     const spotData = spot.toJSON();
     spotData.numReviews = numReviews;
     spotData.avgStarRating = avgStarRating;
 
     return res.status(200).json(spotData);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to retrieve spot details', error: err.message });
+  } catch {
+    res.status(500).json({ message: 'Failed to retrieve spot details' });
   }
 });
 

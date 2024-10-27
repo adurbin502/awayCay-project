@@ -7,15 +7,16 @@ const handleValidationErrors = (req, _res, next) => {
     const errors = {};
     validationErrors
       .array()
-      .forEach(error => errors[error.path] = error.msg);
+      .forEach(error => errors[error.param] = error.msg);
 
-    const err = Error("Bad request.");
+    const err = new Error("Bad Request");
     err.errors = errors;
     err.status = 400;
-    err.title = "Bad request.";
+    err.title = "Bad Request";
     next(err);
+  } else {
+    next();
   }
-  next();
 };
 
 module.exports = {

@@ -44,12 +44,10 @@ router.post("/", validateLogin, async (req, res, next) => {
       user.hashedPassword.toString()
     )
   ) {
-    const err = new Error("Login failed");
+    const err = new Error("Invalid credentials");
     err.status = 401;
-    err.title = "Login failed";
-    err.errors = {
-      credential: "The provided credentials were invalid.",
-    };
+    err.title = "Invalid credentials";
+    err.message = "Invalid credentials"; // Set this to match API documentation
     return next(err);
   }
 
@@ -67,6 +65,7 @@ router.post("/", validateLogin, async (req, res, next) => {
     user: safeUser,
   });
 });
+
 
 // Log out a user
 router.delete("/", (_req, res) => {

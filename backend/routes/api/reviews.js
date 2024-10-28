@@ -5,14 +5,14 @@ const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
 
-// Review validation middleware
+// Validation middleware for creating/editing a review
 const validateReview = [
   check('review').exists({ checkFalsy: true }).withMessage('Review text is required'),
   check('stars').isInt({ min: 1, max: 5 }).withMessage('Stars must be an integer from 1 to 5'),
   handleValidationErrors,
 ];
 
-// Image validation middleware
+// Validation middleware for adding a review image
 const validateImage = [
   check('url').exists({ checkFalsy: true }).isURL().withMessage('Please provide a valid URL for the image.'),
   handleValidationErrors,
@@ -40,12 +40,12 @@ router.get('/current', requireAuth, async (req, res) => {
 });
 
 // POST - Create a review for a spot
-router.post('/:spotId/reviews', requireAuth, validateReview, async (req, res) => {
+router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, res) => {
   const { spotId } = req.params;
   const { review, stars } = req.body;
 
   const spot = await Spot.findByPk(spotId);
-  if (!spot) return res.status(404).json({ message: "Spot couldn't be found" });
+  if (!spot) return res.status(404).json({ title: "Resource Not Found", message: "Spot couldn't be found" });
 
   const existingReview = await Review.findOne({ where: { spotId, userId: req.user.id } });
   if (existingReview) {
@@ -68,7 +68,7 @@ router.post('/:reviewId/images', requireAuth, validateImage, async (req, res) =>
   const { url } = req.body;
 
   const review = await Review.findByPk(reviewId);
-  if (!review) return res.status(404).json({ message: "Review couldn't be found" });
+  if (!review) return res.status(404).json({ title: "Resource Not Found", message: "Review couldn't be found" });
 
   if (review.userId !== req.user.id) {
     return res.status(403).json({ message: 'Forbidden: You are not the owner of this review.' });
@@ -89,7 +89,7 @@ router.put('/:reviewId', requireAuth, validateReview, async (req, res) => {
   const { review, stars } = req.body;
 
   const existingReview = await Review.findByPk(reviewId);
-  if (!existingReview) return res.status(404).json({ message: "Review couldn't be found" });
+  if (!existingReview) return res.status(404).json({ title: "Resource Not Found", message: "Review couldn't be found" });
 
   if (existingReview.userId !== req.user.id) {
     return res.status(403).json({ message: 'Forbidden: You are not the owner of this review.' });
@@ -107,7 +107,7 @@ router.delete('/:reviewId', requireAuth, async (req, res) => {
   const { reviewId } = req.params;
 
   const review = await Review.findByPk(reviewId);
-  if (!review) return res.status(404).json({ message: "Review couldn't be found" });
+  if (!review) return res.status(404).json({ title: "Resource Not Found", message: "Review couldn't be found" });
 
   if (review.userId !== req.user.id) {
     return res.status(403).json({ message: 'Forbidden: You are not the owner of this review.' });

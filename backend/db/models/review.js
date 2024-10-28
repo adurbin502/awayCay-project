@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Review.belongsTo(models.User, { foreignKey: 'userId' });
       Review.belongsTo(models.Spot, { foreignKey: 'spotId' });
+      Review.hasMany(models.ReviewImage, { foreignKey: 'reviewId', onDelete: 'CASCADE', hooks: true });
     }
   }
 
@@ -34,8 +35,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Review',  // Change this to singular
+      modelName: 'Review', // Singular name to match Sequelize model conventions
     }
   );
   return Review;
-  }
+};

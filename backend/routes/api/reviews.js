@@ -36,7 +36,7 @@ router.get('/current', requireAuth, async (req, res) => {
     ],
   });
 
-  res.json({ Reviews: reviews });
+  res.status(200).json({ Reviews: reviews });
 });
 
 // POST - Create a review for a spot

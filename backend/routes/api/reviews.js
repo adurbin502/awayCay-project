@@ -5,23 +5,16 @@ const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
 const router = express.Router();
 
-// Validation middleware for creating/editing a review
+// Review validation middleware
 const validateReview = [
-  check('review')
-    .exists({ checkFalsy: true })
-    .withMessage('Review text is required'),
-  check('stars')
-    .isInt({ min: 1, max: 5 })
-    .withMessage('Stars must be an integer from 1 to 5'),
+  check('review').exists({ checkFalsy: true }).withMessage('Review text is required'),
+  check('stars').isInt({ min: 1, max: 5 }).withMessage('Stars must be an integer from 1 to 5'),
   handleValidationErrors,
 ];
 
-// Validation middleware for adding a review image
+// Image validation middleware
 const validateImage = [
-  check('url')
-    .exists({ checkFalsy: true })
-    .isURL()
-    .withMessage('Please provide a valid URL for the image.'),
+  check('url').exists({ checkFalsy: true }).isURL().withMessage('Please provide a valid URL for the image.'),
   handleValidationErrors,
 ];
 
@@ -47,16 +40,14 @@ router.get('/current', requireAuth, async (req, res) => {
 });
 
 // POST - Create a review for a spot
-router.post('/spots/:spotId/reviews', requireAuth, validateReview, async (req, res) => {
+router.post('/:spotId/reviews', requireAuth, validateReview, async (req, res) => {
   const { spotId } = req.params;
   const { review, stars } = req.body;
 
   const spot = await Spot.findByPk(spotId);
   if (!spot) return res.status(404).json({ message: "Spot couldn't be found" });
 
-  const existingReview = await Review.findOne({
-    where: { spotId, userId: req.user.id },
-  });
+  const existingReview = await Review.findOne({ where: { spotId, userId: req.user.id } });
   if (existingReview) {
     return res.status(403).json({ message: 'User already has a review for this spot' });
   }
@@ -127,4 +118,3 @@ router.delete('/:reviewId', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

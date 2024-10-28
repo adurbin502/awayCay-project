@@ -31,6 +31,13 @@ const validateQueryParams = [
   handleValidationErrors,
 ];
 
+// Validation middleware for adding an image to a spot
+const validateImage = [
+  check('url').exists({ checkFalsy: true }).isURL().withMessage('Please provide a valid URL for the image.'),
+  check('preview').exists({ checkFalsy: true }).isBoolean().withMessage('Please provide a boolean value for the preview field.'),
+  handleValidationErrors,
+];
+
 // GET /api/spots
 router.get('/', validateQueryParams, async (req, res) => {
   const { page = 1, size = 20, minLat, maxLat, minLng, maxLng, minPrice, maxPrice } = req.query;
